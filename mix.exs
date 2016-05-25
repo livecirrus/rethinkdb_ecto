@@ -28,6 +28,6 @@ defmodule RethinkDB.Ecto.Mixfile do
   # Type "mix help deps" for more examples and options
   defp deps do
     [{:ecto, "~> 1.1.3"},
-     {:rethinkdb, ">= 0.0.0"}]
+     {:rethinkdb, github: "livecirrus/rethinkdb-elixir"}]
   end
 end
