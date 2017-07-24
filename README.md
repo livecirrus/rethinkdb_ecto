@@ -16,7 +16,7 @@ Add `:rethinkdb_ecto` to your list of dependencies in `mix.exs`:
 
 ```elixir
 def deps do
-  [{:rethinkdb_ecto, "~> 0.6"}]
+  [{:rethinkdb_ecto, "~> 0.7"}]
 end
 ```
 
@@ -28,7 +28,7 @@ config :my_app, MyApp.Repo,
   ...
 ```
 
-## Usage
+## Setup
 
 First, create you repository with `mix ecto.gen.repo` and add the repository to you config:
 
@@ -51,7 +51,7 @@ def start(_type, _args) do
 end
 ```
 
-Define your schemas and migrations:
+Define your schema:
 
 ```elixir
 defmodule User do
@@ -70,6 +70,18 @@ defmodule User do
 end
 ```
 
+And the matching migration:
+
+```elixir
+defmodule UserMigration do
+  use Ecto.Migration
+
+  def change do
+    create table("users")
+    create index("users", [:name])
+  end
+end
+```
 
 Create the database and apply migrations:
 
@@ -79,6 +91,8 @@ $ mix ecto.migrate
 ```
 
 You are ready to go.
+
+## Usage
 
 The adapter supports almost all of `Ecto.Query` functions. This includes group-by and order-by clauses,
 aggregators, ranges, complex filter and select queries, etc.
@@ -92,7 +106,7 @@ iex(3)> MyApp.Repo.one Post
 
 You can build relationships using `:belongs_to`, `has_one`, `has_many`, etc. in your schema definitions and use them to load associations:
 
-```
+```elixir
 iex(4)> MyApp.Repo.all(Post) |> MyApp.Repo.preload(:comments)
 ```
 

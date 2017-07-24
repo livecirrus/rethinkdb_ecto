@@ -2,18 +2,35 @@ defmodule RethinkDB.Ecto do
   @moduledoc """
   Ecto adapter module for RethinkDB.
 
-  It uses `:rethinkdb` to connect and communicate with a RethinkDB database.
+  It uses the `RethinkDB` driver to connect and communicate with a RethinkDB database.
 
   The adapter tries to serialize SQL-like Ecto queries to the ReQL query
   language in a performant manner. Lots of the query patterns are inspired
-  by the SQL to ReQL cheat-sheet[1]. If you want to know how a specific
+  by the [SQL to ReQL cheat-sheet][1]. If you want to know how a specific
   function is implemented, look at the `RethinkDB.Ecto.NormalizedQuery` module.
 
-  You can create and drop databases using `mix ecto.create` and `mix.ecto.drop`.
-  Migrations will work for creating tables and indexes. Field specifications are
-  not supported and will be ommited when executing the migration.
+  ## Migration support
 
-  Additionaly, repositories using this adapter can run ReQL queries directly:
+  You can create and drop databases using `mix ecto.create` and `mix.ecto.drop`.
+
+  Migrations will work for creating tables and indexes. Table column specifications are
+  not supported by `RethinkDB` and will be ommited when executing the migration.
+
+  This adapter provides support for creating [compound][2] and [multi][3] indexes out of the box.
+
+  To create a compound index, simply pass multiple column names to `Ecto.Migration.index/3`:
+
+      create index(:users, [:first_name, :last_name])
+
+  To create a multi index, pass the `:multi` options as follow:
+
+      create index(:posts, [:tags], options: [multi: true])
+
+  ## Executing ReQL queries
+
+  This adapter enhances the repository it is used with, by providing the `RethinkDB.run/3` function.
+
+  You can run RethinkDB specific queries against your repository as follow:
 
       import RethinkDB.{Query, Lambda}
 
@@ -22,11 +39,19 @@ defmodule RethinkDB.Ecto do
       |> map(lambda & &1[:first_name] + " " + &1[:last_name])
       |> MyApp.Repo.run()
 
-  ### Known Limitations
+  ## Known Limitations
+
+  RethinkDB beeing by nature a *NoSQL* database with basic support for table relationship,
+  you should be aware of following limitations/incompabilities with `Ecto`.
+
+
+  #### Connection Pool
 
   The adapter does not support connection pooling. All the queries are executed
   on the same connection. Due to the multiplex nature of RethinkDB connections,
   a single connection should do just fine for most use cases.
+
+  #### Primary Keys
 
   The data type of a primary key is a UUID `:binary_id`. In order to work properly,
   you must add the following attributes to your schema definitions:
@@ -37,11 +62,14 @@ defmodule RethinkDB.Ecto do
   You can set the `:autogenerate` option to `true` if you want to generate
   primary keys on the client side.
 
-  RethinkDB does not support unique secondary indexes. Indexes can be created
-  normaly using a migration file. When running migrations with unique indexes,
+  #### Unique Indexes
+
+  `RethinkDB` does not support unique secondary indexes. When running migrations with unique indexes,
   you will get a warning. Nevertheless, the index will be created.
 
   [1]: https://rethinkdb.com/docs/sql-to-reql/
+  [2]: https://www.rethinkdb.com/docs/secondary-indexes/ruby/#compound-indexes
+  [3]: https://www.rethinkdb.com/docs/secondary-indexes/ruby/#multi-indexes
   """
 
   @behaviour Ecto.Adapter
@@ -102,6 +130,12 @@ defmodule RethinkDB.Ecto do
       secs = trunc(timestamp)
       base = :calendar.datetime_to_gregorian_seconds({{1970, 1, 1}, {0, 0, 0}})
       NaiveDateTime.from_erl(:calendar.gregorian_seconds_to_datetime(secs + base))
+    end]
+  end
+
+  def loaders(:float, type) do
+    [fn num when is_float(num)   -> {:ok, num}
+        num when is_integer(num) -> {:ok, num / 1}
     end]
   end
 
@@ -218,20 +252,20 @@ defmodule RethinkDB.Ecto do
     :ok
   end
 
-  def execute_ddl(repo, {:create, %Ecto.Migration.Index{columns: [col], table: table, name: name, unique: unique}}, options) do
+  def execute_ddl(repo, {:create, %Ecto.Migration.Index{columns: [col], table: table, name: name, unique: unique, options: index_opts}}, options) do
     if options[:log] && unique, do: Logger.warn "#{inspect __MODULE__} cannot create unique index #{inspect name} for table #{inspect table}."
     table
     |> ReQL.table()
-    |> ReQL.index_create(col)
+    |> ReQL.index_create(col, Keyword.take(index_opts || [], [:multi, :geo]))
     |> repo.run()
     :ok
   end
 
-  def execute_ddl(repo, {:create, %Ecto.Migration.Index{columns: cols, table: table, name: name, unique: unique}}, options) do
+  def execute_ddl(repo, {:create, %Ecto.Migration.Index{columns: cols, table: table, name: name, unique: unique, options: index_opts}}, options) do
     if options[:log] && unique, do: Logger.warn "#{inspect __MODULE__} cannot create unique index #{inspect name} for table #{inspect table}."
     table
     |> ReQL.table()
-    |> ReQL.index_create(name, lambda fn(row) -> Enum.map(cols, &row[&1]) end)
+    |> ReQL.index_create(name, lambda(fn(row) -> Enum.map(cols, &row[&1]) end), Keyword.take(index_opts || [], [:multi, :geo]))
     |> repo.run()
     :ok
   end
