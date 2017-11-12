@@ -6,8 +6,6 @@
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/almightycouch/rethinkdb_ecto/master/LICENSE)
 [![Github Issues](https://img.shields.io/github/issues/almightycouch/rethinkdb_ecto.svg)](http://github.com/almightycouch/rethinkdb_ecto/issues)
 
-![Cover image](http://imgur.com/pjX3m2O.jpg)
-
 RethinkDB adapter for Ecto 2.x.
 
 ## Installation
