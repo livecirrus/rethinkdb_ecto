@@ -39,8 +39,8 @@ defmodule RethinkDB.Ecto.Mixfile do
   end
 
   defp deps do
-    [{:ecto, "~> 2.1"},
-     {:rethinkdb, github: "livecirrus/rethinkdb-elixir", ref: "03dc40146aba302f301221ba80b64096d8bb415c"},
+    [{:ecto, "2.1.6"},
+     {:rethinkdb, github: "livecirrus/rethinkdb-elixir", ref: "5c6d5f25ddc93dd4c332eb009d5c914e2c42ee3a"},
      {:ex_doc, "~> 0.15", only: :dev, runtime: false}]
   end
 end
