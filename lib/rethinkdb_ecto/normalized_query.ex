@@ -43,7 +43,7 @@ defmodule RethinkDB.Ecto.NormalizedQuery do
   """
   def update(model, fields, filters) do
     from(model)
-    |> ReQL.get(filters[:id])
+    |> ReQL.get(filters[hd model.schema.__schema__(:primary_key)])
     |> ReQL.update(Enum.into(fields, %{}))
   end
 
@@ -63,7 +63,7 @@ defmodule RethinkDB.Ecto.NormalizedQuery do
   """
   def delete(model, filters) do
     from(model)
-    |> ReQL.get(filters[:id])
+    |> ReQL.get(filters[hd model.schema.__schema__(:primary_key)])
     |> ReQL.delete()
   end
 
